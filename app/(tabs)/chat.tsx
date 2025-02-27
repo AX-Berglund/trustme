@@ -10,26 +10,25 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const insets = useSafeAreaInsets(); // Get safe area insets
+  const insets = useSafeAreaInsets();
 
   const sendMessage = () => {
     if (!inputText.trim()) return;
 
     const userMessage = { id: Date.now().toString(), text: inputText, sender: 'user' };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]); // Append new message
     setInputText('');
 
-    // Scroll to the newest message
+    // Scroll to bottom when a new message is sent
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
     // Simulate bot response
     setIsTyping(true);
     setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now().toString(), text: 'I am here to assist! 😊', sender: 'bot' }
-      ]);
+      setMessages((prev) => [...prev, { id: Date.now().toString(), text: 'I am here to assist! 😊', sender: 'bot' }]);
       setIsTyping(false);
+
+      // Scroll to bottom again after bot response
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }, 1200);
   };
@@ -37,22 +36,28 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { paddingBottom: insets.bottom }]} // Add safe area padding
+      style={[styles.container, { paddingBottom: insets.bottom }]}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.chatContainer}>
           {/* Chat Messages */}
           <FlatList
             ref={flatListRef}
-            data={messages}
+            data={[...messages].reverse()} // Reverse the order so FlatList handles scrolling naturally
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={[styles.messageContainer, item.sender === 'user' ? styles.userMessage : styles.botMessage]}>
+                <View style={[styles.messageContainer, item.sender === 'user' ? styles.userMessage : styles.botMessage]}>
                 <Text style={styles.messageText}>{item.text}</Text>
-              </View>
+                </View>
             )}
-            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 10 }}
-          />
+            contentContainerStyle={{ paddingBottom: 10 }} // Ensures bottom spacing
+            inverted // This automatically places the first message near the input field
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            />
+
+
+
 
           {/* Typing Indicator */}
           {isTyping && (
@@ -70,7 +75,7 @@ export default function ChatScreen() {
               onChangeText={setInputText}
               placeholder="Type a message..."
               placeholderTextColor="#888"
-              onSubmitEditing={sendMessage} // Allows sending via Enter
+              onSubmitEditing={sendMessage}
             />
             <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
               <Ionicons name="send" size={24} color="white" />
@@ -84,10 +89,10 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0FFF0' },
-  chatContainer: { flex: 1, justifyContent: 'flex-end', paddingLeft: 10, paddingRight: 10 },
+  chatContainer: { flex: 1, paddingLeft: 10, paddingRight: 10},
   messageContainer: { maxWidth: '80%', padding: 12, borderRadius: 12, marginVertical: 5 },
   userMessage: { backgroundColor: '#9370DB', alignSelf: 'flex-end' },
-  botMessage: { backgroundColor: '#D8BFD8', alignSelf: 'flex-start' },
+  botMessage: { backgroundColor: '#D8BFD8', alignSelf: 'flex-start'},
   messageText: { fontSize: 16, color: '#fff' },
   typingIndicator: { flexDirection: 'row', alignItems: 'center', padding: 5, marginBottom: 10 },
   typingText: { marginLeft: 8, color: '#666' },
